@@ -1,4 +1,8 @@
 import click
+import os
+from client import Client
+
+client = Client('/')
 
 
 @click.group(invoke_without_command=True)
@@ -16,7 +20,10 @@ def dfs_init():
     should remove any existing file in the dfs root
     directory and return available size.
     """
-    click.echo('Invoked \'dfs init\'!')
+    global client
+    client = Client('/')
+    msg = client.dfs_init()
+    click.echo(msg)
 
 
 @dfs.group(name='file', invoke_without_command=True)
@@ -32,7 +39,11 @@ def dfs_file_create(filename):
     """
     Should allow to create a new empty file.
     """
-    click.echo(f'Invoked \'dfs file create\' with {click.format_filename(filename)}!')
+    global client
+    filename = click.format_filename(filename)
+    path = os.path.join(client.get_cwd(), filename)
+    msg = client.dfs_file_create(path)
+    click.echo(msg)
 
 
 @dfs_file.command(name='read')
@@ -41,7 +52,11 @@ def dfs_file_read(filename):
     """
     Should allow to read any file from DFS (download a file from the DFS to the Client side).
     """
-    click.echo(f'Invoked \'dfs file read\' with {click.format_filename(filename)}!')
+    global client
+    filename = click.format_filename(filename)
+    path = os.path.join(client.get_cwd(), filename)
+    msg = client.dfs_file_read(path)
+    click.echo(msg)
 
 
 @dfs_file.command(name='write')
@@ -50,7 +65,15 @@ def dfs_file_write(filename):
     """
     Should allow to put any file to DFS (upload a file from the Client side to the DFS)
     """
-    click.echo(f'Invoked \'dfs file write\' with {click.format_filename(filename)}!')
+    global client
+    filename = click.format_filename(filename)
+    if os.path.exists(filename):
+        path = os.path.join(client.get_cwd(), filename)
+        size = os.path.getsize(filename)
+        msg = client.dfs_file_write(path, size)
+        click.echo(msg)
+    else:
+        click.echo(f'The file you specified doesn\'t exist: {filename}!')
 
 
 @dfs_file.command(name='delete')
@@ -59,7 +82,11 @@ def dfs_file_delete(filename):
     """
     Should allow to delete any file from DFS
     """
-    click.echo(f'Invoked \'dfs file delete\' with {click.format_filename(filename)}!')
+    global client
+    filename = click.format_filename(filename)
+    path = os.path.join(client.get_cwd(), filename)
+    msg = client.dfs_file_delete(path)
+    click.echo(msg)
 
 
 @dfs_file.command(name='info')
@@ -134,6 +161,8 @@ def dfs_dir_make(name):
 @dfs_dir.command(name='delete')
 @click.argument('name', type=click.Path())
 def dfs_dir_delete(name):
+    # TODO: verify first with name node, then ask user to confirm
+
     """
     Should allow to delete directory.  If the directory contains
     files the system should ask for confirmation from the
